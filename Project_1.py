@@ -4,9 +4,10 @@
 class Load:
     """Класс для загрузки и хранения данных"""
     barcode_dict = {}
+    products_lst = []
 
     @classmethod
-    def write(cls, fl_barcode):
+    def write_barcode(cls, fl_barcode):
         """Метод позволяет считывать данные из файлов"""
         with open(fl_barcode, encoding='utf-8') as inp_barcode:
             for code in inp_barcode:
@@ -21,6 +22,14 @@ class Load:
                         if len(str(number)) == 1:
                             number = '0' + str(number)
                         cls.barcode_dict[number] = country
+
+    @classmethod
+    def write_products(cls, fl_products):
+        """Метод позволяет считывать данные из файлов"""
+        with open(fl_products, encoding='utf-8') as inp_products:
+            for product in inp_products:
+                lst = product.split(';')
+                cls.products_lst.append(Products(*lst[:-1]))
 
 
 class ShoppingCart:
@@ -82,6 +91,27 @@ class ShoppingCart:
         total_sum = total_sum - (total_sum * (discount / 100))
         return total_sum
 
+    def output(self, fl_output):
+        """Метод позволяет записать данные корзины в файл"""
+        total = ''
+        for product in ShoppingCart.all_products:
+            total += product.name + ';'
+            if product.price is None:
+                total += ';'
+            else:
+                total += str(product.price) + ';'
+            if product.number is None:
+                total += ';'
+            else:
+                total += str(product.number) + ';'
+            if product.barcode is None:
+                total += ';'
+            else:
+                total += str(product.barcode) + ';'
+            total += '\n'
+        with open(fl_output, 'w', encoding='utf-8') as out:
+            out.write(total)
+
 
 class Products:
     """Класс представляет товар"""
@@ -97,39 +127,52 @@ class Products:
         self.__number = number
         self.__number = self.number
 
-        self.barcode = barcode
-        if self.barcode is None:
-            self.check_digit = None
-            self.product_code = None
-            self.country = None
-            self.manufacturer = None
-        else:
-            # check barcode
-            if len(str(self.barcode)) != 13:
-                self.barcode = None
+        try:
+            self.barcode = int(barcode)
+            if self.barcode is None or self.barcode is '':
                 self.check_digit = None
                 self.product_code = None
                 self.country = None
                 self.manufacturer = None
-            digits = '0123456789'
-            for symbol in str(self.barcode):
-                if symbol not in digits:
+            else:
+                # check barcode
+                if len(str(self.barcode)) != 13:
                     self.barcode = None
                     self.check_digit = None
                     self.product_code = None
                     self.country = None
                     self.manufacturer = None
-                    break
-            else:
-                self.barcode = barcode
-                self.check_digit = str(self.barcode)[-1]
-                self.product_code = str(self.barcode)[7:12]
-                if str(self.barcode)[:2] in Products.barcode_dict:
-                    self.country = str(self.barcode)[:2]
-                    self.manufacturer = str(self.barcode)[2:7]
+                digits = '0123456789'
+                for symbol in str(self.barcode):
+                    if symbol not in digits:
+                        self.barcode = None
+                        self.check_digit = None
+                        self.product_code = None
+                        self.country = None
+                        self.manufacturer = None
+                        break
                 else:
-                    self.country = str(self.barcode)[:3]
-                    self.manufacturer = str(self.barcode)[3:7]
+                    self.barcode = barcode
+                    self.check_digit = str(self.barcode)[-1]
+                    self.product_code = str(self.barcode)[7:12]
+                    if str(self.barcode)[:2] in Products.barcode_dict:
+                        self.country = str(self.barcode)[:2]
+                        self.manufacturer = str(self.barcode)[2:7]
+                    else:
+                        self.country = str(self.barcode)[:3]
+                        self.manufacturer = str(self.barcode)[3:7]
+        except ValueError:
+            self.barcode = None
+            self.check_digit = None
+            self.product_code = None
+            self.country = None
+            self.manufacturer = None
+        except TypeError:
+            self.barcode = None
+            self.check_digit = None
+            self.product_code = None
+            self.country = None
+            self.manufacturer = None
 
     def __str__(self):
         """Метод строкового представления"""
@@ -147,7 +190,7 @@ class Products:
             total += 'Количество: ' + str(self.__number) + '\n'
 
         if self.barcode is not None:
-            total += 'Производитель: ' + Products.barcode_dict[self.country]
+            total += 'Производитель: ' + Products.barcode_dict[self.country] + '\n'
         return total
 
     def __repr__(self):
@@ -249,7 +292,7 @@ class Products:
                 return False
 
 
-Load.write('EAN-13.txt')
+Load.write_barcode('EAN-13.txt')
 product1 = Products('Кроссовки', 340, 2, 4820024700016)
 print(product1.price)
 print(Products.calculate_discount(product1, 10))
@@ -277,3 +320,15 @@ print(cart1.count_total_cost_discount(25))
 print(cart1.count_total_number())
 cart1.delete_product(product3)
 print(cart1)
+print()
+Load.write_products('products.txt')
+cart2 = ShoppingCart()
+for item in Load.products_lst:
+    print(item)
+cart2.add_product(Load.products_lst[0])
+cart2.add_product(Load.products_lst[1])
+print(cart2.count_total_cost())
+print(cart2.count_total_cost_discount(13))
+print(Load.products_lst[1].product_authenticity())
+print(Load.products_lst[2].product_authenticity())
+cart2.output('output_products.txt')
