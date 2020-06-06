@@ -1,3 +1,4 @@
+# Project2. Developed by Arkhipova Anastasia 19704
 import time
 
 
@@ -68,12 +69,13 @@ class Song:
         except ValueError:
             self.year = None
         try:
-            self.__duration = int(duration)  # продолжительность песни
+            self.__duration = int(duration)
         except ValueError:
             self.__duration = None
         self.status = False
         self.pause_time = 0
-        self.begin = 0  # время, когда песня начала играть
+        self.pause1 = 0
+        self.begin = 0
 
     def __str__(self):
         """Метод строкового представления"""
@@ -96,12 +98,21 @@ class Song:
         """Метод ставит песню на воспроизведение"""
         if self.status is True:
             return 'Воспроизведение уже идет'
-        for item in Album.all_songs:
-            if item.status is True:
-                item.stop()
-        self.status = True  # воспроизведение начато
-        self.begin = time.time()  # сек когда песня начала играть
-        return 'Воспроизведение начато'
+        elif self.status is False:
+            for item in Album.all_songs:
+                if item.status is True:
+                    item.stop()
+            self.status = True
+            self.begin = time.time()
+            self.pause_time = 0
+            return 'Воспроизведение начато'
+        elif self.status is None:
+            for item in Album.all_songs:
+                if item.status is True:
+                    item.stop()
+            self.status = True
+            self.pause_time = 0
+            return 'Воспроизведение начато'
 
     def stop(self):
         """Метод останавливает воспроизведение песни"""
@@ -114,13 +125,32 @@ class Song:
 
     def pause(self):
         """Метод ставит песню на паузу"""
-        pass
+        if self.status is True:
+            self.status = None
+            self.pause_time = time.time()
+            print('self.during', self.__duration)
+            print('self.begin', self.begin)
+            print('self.pause', self.pause_time)
+            print('time.time', time.time())
+            return f'Песня поставлена на паузу на {int(time.time() - self.begin)} секунде'
+        elif self.status is None:
+            return 'Песня уже стоит на паузе'
+        else:
+            return 'Песня не воспроизводится'
 
     def info(self):
         """Метод позволяет узнать, играет ли песня"""
-        if (time.time() - self.begin) < self.__duration:
-            print('Песня воспроизводится. ', end='')
-            print(f'Осталось {int(self.__duration - (time.time() - self.begin))} сек.')
+        if self.status is True:
+            if self.pause_time != 0:
+                if (time.time() - self.begin) < self.__duration:
+                    print('Песня воспроизводится. ', end='')
+                    print(f'Осталось {int(self.__duration - (time.time() - self.begin) + (time.time()-self.pause_time))} сек.')
+            else:
+                if (time.time() - self.begin) < self.__duration:
+                    print('Песня воспроизводится. ', end='')
+                    print(f'Осталось {int(self.__duration - (time.time() - self.begin))} сек.')
+        elif self.status is None:
+            print('Песня на паузе')
         else:
             print('Песня не воспроизводится')
 
@@ -141,6 +171,7 @@ def main():
     print('3. Показать информацию об альбоме.')
     print('4. Показать информацию о песне.')
     print('5. Узнать состояние песни.')
+    print('6. Поставить песню на паузу.')
 
     def function1():
         print(Album.all_songs)
@@ -169,6 +200,12 @@ def main():
         index = int(input())
         Album.all_songs[index - 1].info()
 
+    def function6():
+        print(Album.all_songs)
+        print('Введите номер песни, которую нужно поставить на паузу:')
+        index = int(input())
+        print(Album.all_songs[index - 1].pause())
+
     while True:
         print('Введите номер команды:')
         menu = int(input())
@@ -182,6 +219,8 @@ def main():
             function4()
         elif menu == 5:
             function5()
+        elif menu == 6:
+            function6()
         else:
             print('Работа программы завершена.')
             exit()
